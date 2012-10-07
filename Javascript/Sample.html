@@ -1,0 +1,130 @@
+<!--
+APIs
+    Console     https://code.google.com/apis/console
+    Google+     https://developers.google.com/+/api/
+    Drive       https://developers.google.com/drive/v2/reference/files/list
+
+OAuth Documentation: 
+    https://developers.google.com/accounts/docs/OAuth2UserAgent
+    https://developers.google.com/youtube/v3/guides/authentication#OAuth2_Client_Libraries
+
+Code initially derived from: https://gist.github.com/563893
+-->
+
+<html>
+<head>
+    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js"></script>
+    <script type="text/javascript" charset="utf-8">
+      $(function () {
+       
+        // parse the query string
+        var params = {}, queryString = location.hash.substring(1),
+            regex = /([^&=]+)=([^&]*)/g, m;
+        while (m = regex.exec(queryString)) {
+            params[decodeURIComponent(m[1])] = decodeURIComponent(m[2]);
+        }
+
+        var settings =
+          {
+            'authHost': "accounts.google.com"
+            , 'tokenHost': "www.googleapis.com"
+            , 'apiKey': '{Enter key from Google Console}'
+            , 'clientId': '{Enter client Id from Google Console}'
+            , 'scopes': 'https://www.googleapis.com/auth/plus.me' // space delimited set of scopes
+          };
+
+        var authHost = "https://" + settings.authHost;
+        var tokenHost = "https://" + settings.tokenHost;
+
+        var endUserAuthorizationEndpoint = authHost + "/o/oauth2/auth";
+        var endUserTokenValidationEndpoint = tokenHost + "/oauth2/v1/tokeninfo";
+
+        var plusApiEndpoint = "https://www.googleapis.com/plus/v1/people/me/activities/collection?key=" + settings.apiKey;
+
+        
+
+        if (params.access_token) {
+          $('div.authenticated').show();
+
+          $('span.token').text(params.access_token);
+          $('span.tokentype').text(params.token_type);
+          $('span.expires').text(params.expires_in);
+
+          // validate token
+          $.ajax({
+              url: endUserTokenValidationEndpoint + "?access_token=" + params.access_token
+            , success: function (response) {
+                console.log(response);
+                var container = $('span.issued_to');
+                if (response) {
+                    container.text(response.issued_to);
+                    $('span.audience').text(response.audience);
+                    $('span.scope').text(response.scope);
+                    $('span.expires_in').text(response.expires_in);
+                    $('span.access_type').text(response.access_type);
+                } else {
+                  container.text("An error occurred.");
+                }
+              }
+          });
+        } else {
+          $('div.authenticate').show();
+
+          var authUrl = endUserAuthorizationEndpoint + 
+            "?response_type=token" +
+            "&client_id="    + settings.clientId +
+            "&redirect_uri=" + window.location +
+            "&scope=" + settings.scopes;
+
+          $("a.connect").attr("href", authUrl);
+        }
+
+        $(".list_files").click(function (e) {
+            e.preventDefault();
+
+            $.ajax({
+                url: plusApiEndpoint + "&access_token=" + params.access_token
+              , beforeSend: function (xhr) {
+                  xhr.setRequestHeader('Authorization', "Bearer " + params.access_token);
+                  xhr.setRequestHeader('Accept', "application/json");
+              }
+              , success: function (response) {
+                  console.log(response);
+
+              }
+            });
+        });
+      });
+    </script>
+    <style>
+      .hidden {
+        display: none;
+      }
+    </style>
+</head>
+<body>
+    <div class="authenticate hidden">
+      <a class="connect" href="">Connect</a>
+    </div>
+
+    <div class="authenticated hidden">
+        <button class="list_files">List G+ Activities</button>
+
+        <h3>Authorization Call</h3>
+        <p>You are using token <span class="token">[...]</span></p>
+        <p>Token type is <span class="tokentype">[...]</span></p>
+        <p>Expires in <span class="expires">[...]</span></p>
+
+        <hr />
+        <h3>Token Validation Information</h3>
+        <p>Issed to: <span class="issued_to">[...]</span></p>
+        <p>Audience: <span class="audience">[...]</span></p>
+        <p>Scope: <span class="scope">[...]</span></p>
+        <p>Expires: <span class="expires_in">[...]</span></p>
+        <p>Access Type: <span class="access_type">[...]</span></p>
+
+
+        <ul class="file_listing"></ul>
+    </div>
+</body>
+</html>
