@@ -18,4 +18,3 @@ To run the demo, you will need to:
 * Take note of the ClientId and API Key from your Google Console and enter them into appropriate places in the sample (you will find the placeholders near the top of the file)                                                                          
 
 Run your demo!
->>>>>>> 034c1fefe1759b9be5758e59648612425a2afd45
